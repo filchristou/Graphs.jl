@@ -11,8 +11,26 @@ GRAPHS = Dict{String,Graph}(
     "path500" => path_graph(500),
 )
 
-suite = BenchmarkGroup()
-include("core.jl")
+# to do const
+serialbenchmarks = [
+    "serial/core.jl",
+    # "serial/connectivity.jl",
+    # "serial/centrality.jl",
+    # "serial/edges.jl",
+    # "serial/insertions.jl",
+    # "serial/traversals.jl",
+]
 
-tune!(suite);
-results = run(suite; verbose=true, seconds=10)
+# to do const 
+SUITE = BenchmarkGroup()
+
+foreach(serialbenchmarks) do bm
+    include(bm)
+end
+
+# to do const
+parallelbenchmarks = [
+    "parallel/egonets.jl",
+]
+
+nothing
