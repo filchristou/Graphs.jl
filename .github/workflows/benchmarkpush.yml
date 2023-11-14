@@ -2,10 +2,6 @@ name: performance tracking
 env:
   JULIA_NUM_THREADS: 2
 on:
-  pull_request:
-    branches:
-      - master
-      - benchexp
   push:
     branches:
       - master
@@ -37,12 +33,12 @@ jobs:
           # - version: '1.6'
             # allow_failure: false
     steps:
-      - uses: actions/checkout@latest
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@latest
+      - uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:
@@ -55,34 +51,25 @@ jobs:
       - uses: julia-actions/julia-buildpkg@latest
       - name: install dependencies
         run: julia -e 'using Pkg; pkg"add PkgBenchmark BenchmarkCI@0.1"'
-      - name : run benchmarks
-        run: julia -e 'using BenchmarkCI; BenchmarkCI.judge(baseline="900f1dc5")'
-      - name: Post results
-        run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'
+      - name: Dump GitHub context
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: Julia benchmark result
-          tool: 'julia'
-          output-file-path: benchmarks/resultbenchmarks.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
-          alert-threshold: '200%'
-          comment-on-alert: true
-          fail-on-alert: true
-          alert-comment-cc-users: '@filchristou'
-      - name: Store benchmark result - separate results repo
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: Julia benchmark result
-          tool: 'julia'
-          output-file-path: examples/julia/output.json
-          github-token: ${{ secrets.BENCHMARK_ACTION_BOT_TOKEN }}
-          auto-push: true
-          alert-threshold: '200%'
-          comment-on-alert: true
-          fail-on-alert: true
-          alert-comment-cc-users: '@ktrz,@findmyway'
-          gh-repository: 'github.com/benchmark-action/github-action-benchmark-results'
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: save baseline sha
+        # run: echo "BASELINESHA = $(git rev-parse --short ${GITHUB_REF_NAME}~)" >> $GITHUB_ENV
+        run: echo "BASELINESHA = f499c056" >> $GITHUB_ENV
+      - name: run benchmark judge
+        run: |
+          echo "$BASELINESHA"
+          julia -e "
+          using BenchmarkCI, PkgBenchmark; 
+          jd=BenchmarkCI.judge(baseline=\"${BASELINESHA}\"); 
+          @show(jd.baseline_results);
+          @show(jd.target_results);
+          jd
+          "
+      - uses: actions/upload-artifact@v3
+        with: 
+          name: Store benchmark result
+          path: .benchmarkci/result-target.json
+
