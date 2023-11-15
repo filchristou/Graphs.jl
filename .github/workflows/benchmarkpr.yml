@@ -6,6 +6,10 @@ on:
     branches:
       - master
       - benchexp
+  push:
+    branches:
+      - master
+      - benchexp
     tags: '*'
 jobs:
   benchmark:
@@ -51,9 +55,18 @@ jobs:
       - uses: julia-actions/julia-buildpkg@latest
       - name: install dependencies
         run: julia -e 'using Pkg; pkg"add PkgBenchmark BenchmarkCI@0.1"'
-      - name: run benchmark judge
-        run: julia -e "using BenchmarkCI, PkgBenchmark; jd=BenchmarkCI.judge(baseline=\"${ GITHUB_BASE_REF }\"); writeresults(\"benchout.json\", jd.target_results); jd"
-      - name: Post results
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      # - name: run benchmark judge
+      #   run: julia -e "using BenchmarkCI, PkgBenchmark; jd=BenchmarkCI.judge(baseline=\"${GITHUB_REF}\"); writeresults(\"benchout.json\", jd.target_results); jd"
+      - name: Deduct baseline and run benchmark judge
+        env:
+          BASELINE: ${{ (github.event_name == 'pull_request') && github.event.pull_request.base.sha || github.ref }}
+        run: julia -e "using BenchmarkCI, PkgBenchmark; jd=BenchmarkCI.judge(baseline=\"${{ env.BASELINE }}\"); writeresults(\"benchout.json\", jd.target_results); jd"
+      - name: Post results if pull request
+        if: github.event_name == 'pull_request'
         run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
