@@ -59,12 +59,15 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      # - name: run benchmark judge
-      #   run: julia -e "using BenchmarkCI, PkgBenchmark; jd=BenchmarkCI.judge(baseline=\"${GITHUB_REF}\"); writeresults(\"benchout.json\", jd.target_results); jd"
       - name: Deduct baseline and run benchmark judge
         env:
-          BASELINE: ${{ (github.event_name == 'pull_request') && github.event.pull_request.base.sha || github.ref }}
-        run: julia -e "using BenchmarkCI, PkgBenchmark; jd=BenchmarkCI.judge(baseline=\"${{ env.BASELINE }}\"); writeresults(\"benchout.json\", jd.target_results); jd"
+          BASELINE: ${{ (github.event_name == 'pull_request') && github.base_ref || github.ref_name }}
+        run: julia -e "using BenchmarkCI, PkgBenchmark; 
+          jd=BenchmarkCI.judge(baseline=\"origin/${{ env.BASELINE }}\"); 
+          @show(jd.target_results);
+          @show(jd.baseline_results);
+          writeresults(\"benchout.json\", jd.target_results); 
+          jd"
       - name: Post results if pull request
         if: github.event_name == 'pull_request'
         run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'

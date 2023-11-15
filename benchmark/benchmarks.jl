@@ -11,8 +11,7 @@ GRAPHS = Dict{String,Graph}(
     "path500" => path_graph(500),
 )
 
-# to do const
-serialbenchmarks = [
+const serialbenchmarks = [
     "serial/core.jl",
     # "serial/connectivity.jl",
     # "serial/centrality.jl",
@@ -21,15 +20,13 @@ serialbenchmarks = [
     # "serial/traversals.jl",
 ]
 
-# to do const 
-SUITE = BenchmarkGroup()
+const SUITE = BenchmarkGroup()
 
 foreach(serialbenchmarks) do bm
     include(bm)
 end
 
-# to do const
-parallelbenchmarks = [
+const parallelbenchmarks = [
     "parallel/egonets.jl",
 ]
 
