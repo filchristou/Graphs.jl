@@ -73,6 +73,12 @@ jobs:
         run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push results if push/merge
+        if: github.event_name == 'push'
+        run: julia -e "using BenchmarkCI; BenchmarkCI.pushresult(; url=\"git@github.com:filchristou/Graphs.jl-benchmarks-results-test.git\", branch=\"${GITHUB_REF_NAME}\")"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SSH_KEY: ${{ secrets.DATA_SSH_KEY }}
       - uses: actions/upload-artifact@v3
         with: 
           name: Store benchmark result
