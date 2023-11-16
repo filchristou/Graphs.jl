@@ -20,22 +20,14 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          # - 'nightly'
           - '1'
-          # - '1.6'
         os:
           - ubuntu-latest
-          # - macos-latest
-          # - windows-latest
         arch:
           - x64
         include:
-          # - version: 'nightly'
-          #   allow_failure: true
           - version: '1'
             allow_failure: false
-          # - version: '1.6'
-            # allow_failure: false
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
@@ -61,19 +53,15 @@ jobs:
         run: echo "$GITHUB_CONTEXT"
       - name: Run benchmark judge if pull request
         if: github.event_name == 'pull_request'
-          # BASELINE: ${{ (github.event_name == 'pull_request') && github.base_ref || github.ref_name }}
         run: julia -e "
           using BenchmarkCI, PkgBenchmark; 
           jd=BenchmarkCI.judge(baseline=\"origin/${GITHUB_BASE_REF}\"); 
-          @show(jd.target_results);
-          @show(jd.baseline_results);
           writeresults(\"targetbenchout.json\", jd.target_results); 
           writeresults(\"baselinebenchout.json\", jd.baseline_results); 
-          jd
           "
       - name: Post results if pull request
         if: github.event_name == 'pull_request'
-        run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge(), BenchmarkCI.displayjudgement()'
+        run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run benchmark if push/merge
