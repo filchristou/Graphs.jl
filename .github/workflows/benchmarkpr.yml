@@ -64,7 +64,7 @@ jobs:
           # BASELINE: ${{ (github.event_name == 'pull_request') && github.base_ref || github.ref_name }}
         run: julia -e "
           using BenchmarkCI, PkgBenchmark; 
-          jd=BenchmarkCI.judge(baseline=\"origin/${GITHUB_REF_NAME}\"); 
+          jd=BenchmarkCI.judge(baseline=\"origin/${GITHUB_BASE_REF}\"); 
           @show(jd.target_results);
           @show(jd.baseline_results);
           writeresults(\"targetbenchout.json\", jd.target_results); 
