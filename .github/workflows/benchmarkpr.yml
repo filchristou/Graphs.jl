@@ -47,10 +47,6 @@ jobs:
       - uses: julia-actions/julia-buildpkg@latest
       - name: install dependencies
         run: julia -e 'using Pkg; pkg"add PkgBenchmark BenchmarkCI@0.1"'
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
       - name: Run benchmark judge if pull request
         if: github.event_name == 'pull_request'
         run: julia -e "
