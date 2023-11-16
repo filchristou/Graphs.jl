@@ -59,28 +59,36 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - name: Deduct baseline and run benchmark judge
-        env:
-          BASELINE: ${{ (github.event_name == 'pull_request') && github.base_ref || github.ref_name }}
-        run: julia -e "using BenchmarkCI, PkgBenchmark; 
-          jd=BenchmarkCI.judge(baseline=\"origin/${{ env.BASELINE }}\"); 
+      - name: Run benchmark judge if pull request
+        if: github.event_name == 'pull_request'
+          # BASELINE: ${{ (github.event_name == 'pull_request') && github.base_ref || github.ref_name }}
+        run: julia -e "
+          using BenchmarkCI, PkgBenchmark; 
+          jd=BenchmarkCI.judge(baseline=\"origin/${GITHUB_REF_NAME}\"); 
           @show(jd.target_results);
           @show(jd.baseline_results);
-          writeresults(\"benchout.json\", jd.target_results); 
-          jd"
+          writeresults(\"targetbenchout.json\", jd.target_results); 
+          writeresults(\"baselinebenchout.json\", jd.baseline_results); 
+          jd
+          "
       - name: Post results if pull request
         if: github.event_name == 'pull_request'
-        run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge()'
+        run: julia -e 'using BenchmarkCI; BenchmarkCI.postjudge(), BenchmarkCI.displayjudgement()'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push results if push/merge
+      - name: Run benchmark if push/merge
         if: github.event_name == 'push'
-        run: julia -e "using BenchmarkCI; BenchmarkCI.pushresult(; url=\"git@github.com:filchristou/Graphs.jl-benchmarks-results-test.git\", branch=\"${GITHUB_REF_NAME}\")"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SSH_KEY: ${{ secrets.DATA_SSH_KEY }}
+        run: julia --project=benchmark -e "
+          import Pkg;
+          Pkg.develop(path=pwd());
+          Pkg.instantiate();
+          using PkgBenchmark, BenchmarkTools; 
+          br=benchmarkpkg(pwd()); 
+          br_median = BenchmarkResults(br.name, br.commit, median(br.benchmarkgroup), br.date, br.julia_commit, br.vinfo, br.benchmarkconfig);
+          writeresults(\"medianbenchout.json\", br_median); 
+          "
       - uses: actions/upload-artifact@v3
         with: 
           name: Store benchmark result
-          path: benchout.json
+          path: ./*benchout.json
 
